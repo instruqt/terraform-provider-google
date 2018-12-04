@@ -599,7 +599,13 @@ func getInstance(config *Config, d *schema.ResourceData) (*computeBeta.Instance,
 	if err != nil {
 		return nil, err
 	}
-	instance, err := config.clientComputeBeta.Instances.Get(project, zone, d.Id()).Do()
+
+	var instance *computeBeta.Instance
+	err = retryTime(func() error {
+		instance, err = config.clientComputeBeta.Instances.Get(project, zone, d.Id()).Do()
+		return err
+	}, 5 /* minutes */)
+
 	if err != nil {
 		return nil, handleNotFoundError(err, d, fmt.Sprintf("Instance %s", d.Get("name").(string)))
 	}
@@ -742,7 +748,11 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 	}
 
 	log.Printf("[INFO] Requesting instance creation")
-	op, err := config.clientComputeBeta.Instances.Insert(project, zone.Name, instance).Do()
+	var op *computeBeta.Operation
+	err = retryTime(func() error {
+		op, err = config.clientComputeBeta.Instances.Insert(project, zone.Name, instance).Do()
+		return err
+	}, 5 /* minutes */)
 	if err != nil {
 		return fmt.Errorf("Error creating instance: %s", err)
 	}
@@ -958,7 +968,12 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 
 	// Use beta api directly in order to read network_interface.fingerprint without having to put it in the schema.
 	// Change back to getInstance(config, d) once updating alias ips is GA.
-	instance, err := config.clientComputeBeta.Instances.Get(project, zone, d.Id()).Do()
+	var instance *computeBeta.Instance
+	err = retryTime(func() error {
+		instance, err = config.clientComputeBeta.Instances.Get(project, zone, d.Id()).Do()
+		return err
+	}, 5 /* minutes */)
+
 	if err != nil {
 		return handleNotFoundError(err, d, fmt.Sprintf("Instance %s", d.Get("name").(string)))
 	}
@@ -1135,8 +1150,12 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 					ac.PublicPtrDomainName = ptr.(string)
 				}
 
-				op, err := config.clientComputeBeta.Instances.AddAccessConfig(
-					project, zone, d.Id(), networkName, ac).Do()
+				var op *computeBeta.Operation
+				err = retryTime(func() error {
+					op, err = config.clientComputeBeta.Instances.AddAccessConfig(
+						project, zone, d.Id(), networkName, ac).Do()
+					return err
+				}, 5 /* minutes */)
 				if err != nil {
 					return fmt.Errorf("Error adding new access_config: %s", err)
 				}
@@ -1156,7 +1175,12 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 					Fingerprint:     instNetworkInterface.Fingerprint,
 					ForceSendFields: []string{"AliasIpRanges"},
 				}
-				op, err := config.clientComputeBeta.Instances.UpdateNetworkInterface(project, zone, d.Id(), networkName, ni).Do()
+				var op *computeBeta.Operation
+				var err error
+				err = retryTime(func() error {
+					op, err = config.clientComputeBeta.Instances.UpdateNetworkInterface(project, zone, d.Id(), networkName, ni).Do()
+					return err
+				}, 5 /* minutes */)
 				if err != nil {
 					return errwrap.Wrapf("Error removing alias_ip_range: {{err}}", err)
 				}
@@ -1170,7 +1194,11 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 			ranges := d.Get(prefix + ".alias_ip_range").([]interface{})
 			if len(ranges) > 0 {
 				if rereadFingerprint {
-					instance, err = config.clientComputeBeta.Instances.Get(project, zone, d.Id()).Do()
+					var instance *computeBeta.Instance
+					err = retryTime(func() error {
+						instance, err = config.clientComputeBeta.Instances.Get(project, zone, d.Id()).Do()
+						return err
+					}, 5 /* minutes */)
 					if err != nil {
 						return err
 					}
@@ -1180,7 +1208,11 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 					AliasIpRanges: expandAliasIpRanges(ranges),
 					Fingerprint:   instNetworkInterface.Fingerprint,
 				}
-				op, err := config.clientComputeBeta.Instances.UpdateNetworkInterface(project, zone, d.Id(), networkName, ni).Do()
+				var op *computeBeta.Operation
+				err = retryTime(func() error {
+					op, err = config.clientComputeBeta.Instances.UpdateNetworkInterface(project, zone, d.Id(), networkName, ni).Do()
+					return err
+				}, 5 /* minutes */)
 				if err != nil {
 					return errwrap.Wrapf("Error adding alias_ip_range: {{err}}", err)
 				}
