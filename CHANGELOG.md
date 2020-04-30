@@ -128,7 +128,6 @@ FEATURES:
 * **New Resource:** `google_healthcare_hl7_v2_store_iam_policy` is now GA ([#6193](https://github.com/terraform-providers/terraform-provider-google/pull/6193))
 * **New Resource:** `google_healthcare_hl7_v2_store` is now GA ([#6164](https://github.com/terraform-providers/terraform-provider-google/pull/6164))
 
-
 IMPROVEMENTS:
 * appengine: Added `automatic_scaling`, `basic_scaling`, and `manual_scaling` to `google_app_engine_standard_app_version` ([#6183](https://github.com/terraform-providers/terraform-provider-google/pull/6183))
 * bigquery: added `service_account_name` field to `google_bigquery_data_transfer_config` resource ([#6221](https://github.com/terraform-providers/terraform-provider-google/pull/6221))
