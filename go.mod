@@ -1,5 +1,7 @@
 module github.com/terraform-providers/terraform-provider-google
 
+go 1.14
+
 require (
 	cloud.google.com/go v0.38.0
 	github.com/apparentlymart/go-cidr v1.0.0
