@@ -99,9 +99,19 @@ func resourceGoogleServiceAccountKeyCreate(d *schema.ResourceData, meta interfac
 		PrivateKeyType: d.Get("private_key_type").(string),
 	}
 
-	sak, err := config.clientIAM.Projects.ServiceAccounts.Keys.Create(serviceAccountName, r).Do()
-	if err != nil {
-		return fmt.Errorf("Error creating service account key: %s", err)
+	var sak *iam.ServiceAccountKey
+	for i := 0; ; i++ {
+		sak, err = config.clientIAM.Projects.ServiceAccounts.Keys.Create(serviceAccountName, r).Do()
+		if err != nil {
+			if i < 30 {
+				time.Sleep(time.Second)
+				continue
+			}
+
+			return fmt.Errorf("Error creating service account key: %s", err)
+		}
+
+		break
 	}
 
 	d.SetId(sak.Name)
