@@ -116,6 +116,7 @@ func resourceGoogleServiceAccountKeyCreate(d *schema.ResourceData, meta interfac
 	if err != nil {
 		return err
 	}
+
 	return resourceGoogleServiceAccountKeyRead(d, meta)
 }
 
@@ -125,20 +126,30 @@ func resourceGoogleServiceAccountKeyRead(d *schema.ResourceData, meta interface{
 	publicKeyType := d.Get("public_key_type").(string)
 
 	// Confirm the service account key exists
-	sak, err := config.clientIAM.Projects.ServiceAccounts.Keys.Get(d.Id()).PublicKeyType(publicKeyType).Do()
-	if err != nil {
-		if err = handleNotFoundError(err, d, fmt.Sprintf("Service Account Key %q", d.Id())); err == nil {
-			return nil
-		} else {
-			// This resource also returns 403 when it's not found.
-			if isGoogleApiErrorWithCode(err, 403) {
-				log.Printf("[DEBUG] Got a 403 error trying to read service account key %s, assuming it's gone.", d.Id())
-				d.SetId("")
+	var sak *iam.ServiceAccountKey
+	var err error
+	for i := 0; ; i++ {
+		sak, err = config.clientIAM.Projects.ServiceAccounts.Keys.Get(d.Id()).PublicKeyType(publicKeyType).Do()
+		if err != nil {
+			if i < 30 {
+				time.Sleep(time.Second)
+				continue
+			}
+
+			if err = handleNotFoundError(err, d, fmt.Sprintf("Service Account Key %q", d.Id())); err == nil {
 				return nil
 			} else {
-				return err
+				// This resource also returns 403 when it's not found.
+				if isGoogleApiErrorWithCode(err, 403) {
+					log.Printf("[DEBUG] Got a 403 error trying to read service account key %s, assuming it's gone.", d.Id())
+					d.SetId("")
+					return nil
+				} else {
+					return err
+				}
 			}
 		}
+		break
 	}
 
 	d.Set("name", sak.Name)

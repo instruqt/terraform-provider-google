@@ -103,9 +103,18 @@ func resourceGoogleServiceAccountRead(d *schema.ResourceData, meta interface{}) 
 	config := meta.(*Config)
 
 	// Confirm the service account exists
-	sa, err := config.clientIAM.Projects.ServiceAccounts.Get(d.Id()).Do()
-	if err != nil {
-		return handleNotFoundError(err, d, fmt.Sprintf("Service Account %q", d.Id()))
+	var sa *iam.ServiceAccount
+	var err error
+	for i := 0; ; i++ {
+		sa, err = config.clientIAM.Projects.ServiceAccounts.Get(d.Id()).Do()
+		if err != nil {
+			if i < 30 {
+				time.Sleep(time.Second)
+				continue
+			}
+			return handleNotFoundError(err, d, fmt.Sprintf("Service Account %q", d.Id()))
+		}
+		break
 	}
 
 	d.Set("email", sa.Email)
